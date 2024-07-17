@@ -82,7 +82,20 @@ async def any_message(message: types.Message):
                 logger.info(f'Тип ссылки: {entity.type}')
                 if entity.type in ["url", "text_link", "mention"]:
                     warning_url = await message.answer(f'Запрещена публикация сообщений с ссылками')
-                    await connect_session_to_telegram_account()
+
+                    if entity.type == "url":
+                        link = message.text[entity.offset:entity.offset + entity.length]
+                        logger.info(f"Ссылка (url) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                        await connect_session_to_telegram_account(link)
+                    elif entity.type == "text_link":
+                        link = entity.url
+                        logger.info(f"Ссылка (text_link) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                        await connect_session_to_telegram_account(link)
+                    elif entity.type == "mention":
+                        link = message.text[entity.offset:entity.offset + entity.length]
+                        logger.info(f"Ссылка (mention) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                        await connect_session_to_telegram_account(link)
+
                     logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                 f'Текст сообщения {message.text}')
                     await message.delete()  # Удаляем сообщение содержащее ссылку
