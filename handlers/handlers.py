@@ -9,11 +9,13 @@ from aiogram.types import ChatMemberUpdated
 from aiogram.types import Message
 from loguru import logger  # https://github.com/Delgan/loguru
 
+from models.models import connect_session_to_telegram_account
 from system.dispatcher import bot, dp
 
 phone_number_pattern = re.compile(r'(\+?\d{1,3}[-\s]?\d{3,4}[-\s]?\d{2,4}[-\s]?\d{2,4})')
 
 allowed_user_ids = [53518551]  # ID администраторов
+
 
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
@@ -54,6 +56,7 @@ async def new_chat_member(message: types.Message):
     """
     await message.delete()  # Удаляем системное сообщение о новом участнике группы
 
+
 @dp.message(F.left_chat_member)
 async def left_chat_member(message: types.Message):
     """
@@ -66,20 +69,20 @@ async def left_chat_member(message: types.Message):
 @dp.message(F.text)
 async def any_message(message: types.Message):
     """
-    Проверка сообщения на наличие номера телефона, если нет, то удаляем сообщение и предупреждаем пользователя.
-    Если есть номер телефона, то проверяем на наличие ссылок, если есть ссылка, то удаляем сообщение и предупреждаем
-    пользователя.
+    Проверка сообщения на наличие ссылок если ссылка в сообщении есть, то удаляем сообщение и предупреждаем пользователя.
     """
     logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
     user_id = message.from_user.id  # Получаем ID пользователя
+    logger.info(f'Текст сообщения: {message.text}')
     if user_id in allowed_user_ids:  # Проверка на наличие пользователя в списке разрешенных
         logger.info(f'Админ {user_id} написал сообщение {message.text}')
     else:
         try:
             for entity in message.entities:  # Проверка на наличие ссылок
                 logger.info(f'Тип ссылки: {entity.type}')
-                if entity.type in ["url", "text_link"]:
+                if entity.type in ["url", "text_link", "mention"]:
                     warning_url = await message.answer(f'Запрещена публикация сообщений с ссылками')
+                    await connect_session_to_telegram_account()
                     logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                 f'Текст сообщения {message.text}')
                     await message.delete()  # Удаляем сообщение содержащее ссылку
@@ -97,9 +100,7 @@ async def any_message(message: types.Message):
 @dp.edited_message(F.text)
 async def edit_message(message: types.Message):
     """
-    Проверка изменяемых сообщений на наличие номера телефона, если нет, то удаляем сообщение и предупреждаем
-    пользователя.
-    Проверяем на наличие ссылок, если есть ссылка, то удаляем сообщение и предупреждаем пользователя.
+    Проверка изменяемых сообщений на наличие ссылок если есть ссылка, то удаляем сообщение и предупреждаем пользователя.
     """
     logger.info(f'Измененное сообщение пользователем: {message.from_user.id}, текст измененного '
                 f'сообщения: {message.text}')
@@ -110,7 +111,7 @@ async def edit_message(message: types.Message):
         try:
             for entity in message.entities:  # Проверка на наличие ссылок
                 logger.info(f'Тип ссылки: {entity.type}')
-                if entity.type in ["url", "text_link"]:
+                if entity.type in ["url", "text_link", "mention"]:
                     warning_url = await message.answer(f'Запрещена публикация сообщений с ссылками')
                     logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                 f'Текст сообщения {message.text}')

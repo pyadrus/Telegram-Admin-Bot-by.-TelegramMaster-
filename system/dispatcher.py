@@ -7,10 +7,7 @@ config = configparser.ConfigParser(empty_lines_in_values=False, allow_no_value=T
 config.read("setting/config.ini")  # Чтение файла
 BOT_TOKEN = config["BOT_TOKEN"]["BOT_TOKEN"]
 
-bot = Bot(
-    token=BOT_TOKEN,
-          # parse_mode="HTML"
-          )
+bot = Bot(token=BOT_TOKEN,)
 storage = MemoryStorage()  # Хранилище
 dp = Dispatcher(storage=storage)
 
