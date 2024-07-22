@@ -1,3 +1,5 @@
+import sqlite3
+
 from telethon import TelegramClient
 from loguru import logger
 
@@ -13,3 +15,20 @@ async def connect_session_to_telegram_account(username_messages):
     username = await client.get_entity(f'{username_messages}')
     logger.info(f"ID группы {username_messages}: {username.id}")
     await client.disconnect()
+    username_id = username.id
+    return username_id
+
+
+async def read_database():
+    """Чтение с базы данных"""
+    connection = sqlite3.connect('setting/database.db')  # Подключение к базе данных
+    cursor = connection.cursor()  # Подключение к таблице
+    cursor.execute('SELECT * FROM groups')  # Выполнение запроса
+    users = cursor.fetchall()  # Выполнение запроса
+    cursor.close()  # Закрытие подключения
+    connection.close()  # Закрытие подключения
+    return users
+
+
+if __name__ == '__main__':
+    read_database()

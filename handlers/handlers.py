@@ -9,7 +9,7 @@ from aiogram.types import ChatMemberUpdated
 from aiogram.types import Message
 from loguru import logger  # https://github.com/Delgan/loguru
 
-from models.models import connect_session_to_telegram_account
+from models.models import connect_session_to_telegram_account, read_database
 from system.dispatcher import bot, dp
 
 phone_number_pattern = re.compile(r'(\+?\d{1,3}[-\s]?\d{3,4}[-\s]?\d{2,4}[-\s]?\d{2,4})')
@@ -83,28 +83,61 @@ async def any_message(message: types.Message):
                 if entity.type in ["url", "text_link", "mention"]:
                     warning_url = await message.answer(f'Запрещена публикация сообщений с ссылками')
 
-                    if entity.type == "url":
-                        link = message.text[entity.offset:entity.offset + entity.length]
-                        logger.info(f"Ссылка (url) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
-                        await connect_session_to_telegram_account(link)
-                    elif entity.type == "text_link":
-                        link = entity.url
-                        logger.info(f"Ссылка (text_link) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
-                        await connect_session_to_telegram_account(link)
-                    elif entity.type == "mention":
-                        link = message.text[entity.offset:entity.offset + entity.length]
-                        logger.info(f"Ссылка (mention) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
-                        await connect_session_to_telegram_account(link)
+                    users = await read_database()
+                    for user in users:
+                        logger.info(f'ID из базы данных: {user[0]}')
 
-                    logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
-                                f'Текст сообщения {message.text}')
-                    await message.delete()  # Удаляем сообщение содержащее ссылку
-                    logger.info(f'Сообщения {message.text} от ({message.from_user.username} {message.from_user.id}), '
-                                f'удалено')
-                    logger.info(f'Удаление системного сообщения от бота через 10 сек.')
-                    await asyncio.sleep(int(10))  # Спим 20 секунд
-                    await warning_url.delete()  # Удаляем предупреждение от бота
-                    logger.info(f'Системное сообщения от бота удалено')
+                        if entity.type == "url":
+                            link = message.text[entity.offset:entity.offset + entity.length]
+                            logger.info(f"Ссылка (url) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                            username_id = await connect_session_to_telegram_account(link)
+                            logger.info(f'ID группы {link}: {username_id}')
+                            if username_id == user[0]:
+                                logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
+                                            f'Текст сообщения {message.text}')
+                                await message.delete()  # Удаляем сообщение содержащее ссылку
+                                logger.info(
+                                    f'Сообщения {message.text} от ({message.from_user.username} {message.from_user.id}), '
+                                    f'удалено')
+                                logger.info(f'Удаление системного сообщения от бота через 10 сек.')
+                                await asyncio.sleep(int(10))  # Спим 20 секунд
+                                await warning_url.delete()  # Удаляем предупреждение от бота
+                                logger.info(f'Системное сообщения от бота удалено')
+
+                        elif entity.type == "text_link":
+                            link = entity.url
+                            logger.info(f"Ссылка (text_link) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                            username_id = await connect_session_to_telegram_account(link)
+                            logger.info(f'ID группы {link}: {username_id}')
+                            if username_id == user[0]:
+                                logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
+                                            f'Текст сообщения {message.text}')
+                                await message.delete()  # Удаляем сообщение содержащее ссылку
+                                logger.info(
+                                    f'Сообщения {message.text} от ({message.from_user.username} {message.from_user.id}), '
+                                    f'удалено')
+                                logger.info(f'Удаление системного сообщения от бота через 10 сек.')
+                                await asyncio.sleep(int(10))  # Спим 20 секунд
+                                await warning_url.delete()  # Удаляем предупреждение от бота
+                                logger.info(f'Системное сообщения от бота удалено')
+
+                        elif entity.type == "mention":
+                            link = message.text[entity.offset:entity.offset + entity.length]
+                            logger.info(f"Ссылка (mention) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                            username_id = await connect_session_to_telegram_account(link)
+                            logger.info(f'ID группы {link}: {username_id}')
+                            if username_id == user[0]:
+                                logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
+                                            f'Текст сообщения {message.text}')
+                                await message.delete()  # Удаляем сообщение содержащее ссылку
+                                logger.info(
+                                    f'Сообщения {message.text} от ({message.from_user.username} {message.from_user.id}), '
+                                    f'удалено')
+                                logger.info(f'Удаление системного сообщения от бота через 10 сек.')
+                                await asyncio.sleep(int(10))  # Спим 20 секунд
+                                await warning_url.delete()  # Удаляем предупреждение от бота
+                                logger.info(f'Системное сообщения от бота удалено')
+
         except Exception as e:
             logger.info(f'Возникла ошибка {e}, так как в сообщении {message.text} от {message.from_user.username} '
                         f'{message.from_user.id} нет ссылки')
