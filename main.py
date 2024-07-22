@@ -4,6 +4,7 @@ import sys
 
 from loguru import logger
 
+from handlers.admin_handlers import greeting_handler
 from handlers.handlers import register_greeting_handler
 from system.dispatcher import dp, bot
 
@@ -14,6 +15,7 @@ async def main() -> None:
     """Запуск бота https://t.me/Newwwbotik_bot"""
     await dp.start_polling(bot)
     register_greeting_handler()
+    greeting_handler()  # Запись id группы админом
 
 
 if __name__ == '__main__':
