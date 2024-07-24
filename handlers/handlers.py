@@ -85,7 +85,7 @@ async def any_message(message: types.Message):
 
                         if entity.type == "url":
                             link = message.text[entity.offset:entity.offset + entity.length]
-                            logger.info(f"Ссылка (url) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                            logger.info(f"Ссылка (url) в сообщении 🔗: {link}")
                             username_id = await connect_session_to_telegram_account(link)
                             logger.info(f'ID группы {link}: {username_id}')
                             if username_id == user[0]:
@@ -103,7 +103,7 @@ async def any_message(message: types.Message):
                         elif entity.type == "text_link":
                             link = entity.url
                             logger.info(
-                                f"Ссылка (text_link) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                                f"Ссылка (text_link) в сообщении 🔗: {link}")
                             username_id = await connect_session_to_telegram_account(link)
                             logger.info(f'ID группы {link}: {username_id}')
                             if username_id == user[0]:
@@ -113,7 +113,7 @@ async def any_message(message: types.Message):
 
                         elif entity.type == "mention":
                             link = message.text[entity.offset:entity.offset + entity.length]
-                            logger.info(f"Ссылка (mention) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                            logger.info(f"Ссылка (mention) в сообщении 🔗: {link}")
                             username_id = await connect_session_to_telegram_account(link)
                             logger.info(f'ID группы {link}: {username_id}')
                             if username_id == user[0]:

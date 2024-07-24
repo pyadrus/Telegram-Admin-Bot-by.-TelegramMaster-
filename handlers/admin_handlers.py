@@ -6,11 +6,6 @@ from loguru import logger
 
 from system.dispatcher import dp, allowed_user_ids  # Подключение к боту и диспетчеру пользователя
 
-# Инициализация базы данных SQLite
-conn = sqlite3.connect('setting/database.db')
-cursor = conn.cursor()
-cursor.execute('CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY)')
-
 
 def checking_for_presence_in_the_user_database(user_id):
     # Инициализация базы данных SQLite
@@ -35,6 +30,9 @@ async def process_id_command(message: types.Message):
             user_id = int(message.text.split()[1])
             result = checking_for_presence_in_the_user_database(user_id)  # Запись ID в базу данных
             if result is None:
+                conn = sqlite3.connect('setting/database.db')  # Инициализация базы данных SQLite
+                cursor = conn.cursor()
+                cursor.execute('CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY)')
                 cursor.execute('INSERT INTO groups (id) VALUES (?)', (user_id,))
                 conn.commit()
                 await message.reply(f"ID {user_id} успешно записан в базу данных.")
