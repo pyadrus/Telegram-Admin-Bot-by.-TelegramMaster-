@@ -4,16 +4,14 @@ from aiogram import F
 from aiogram import types
 from aiogram.filters import ChatMemberUpdatedFilter, IS_NOT_MEMBER, IS_MEMBER
 from aiogram.filters import CommandStart
-from aiogram.types import ChatMemberUpdated
+from aiogram.types import ChatMemberUpdated, ChatPermissions
 from aiogram.types import Message
 from loguru import logger  # https://github.com/Delgan/loguru
 
 from models.models import connect_session_to_telegram_account, read_database
-from system.dispatcher import bot, dp
+from system.dispatcher import bot, dp, allowed_user_ids
 
 phone_number_pattern = re.compile(r'(\+?\d{1,3}[-\s]?\d{3,4}[-\s]?\d{2,4}[-\s]?\d{2,4})')
-
-allowed_user_ids = [53518551]  # ID администраторов
 
 
 @dp.message(CommandStart())
@@ -91,13 +89,21 @@ async def any_message(message: types.Message):
                             username_id = await connect_session_to_telegram_account(link)
                             logger.info(f'ID группы {link}: {username_id}')
                             if username_id == user[0]:
+                                user_id = message.from_user.id
+                                permissions = ChatPermissions(can_send_messages=False)
+                                await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
+                                                               permissions=permissions)
+                                await message.reply(
+                                    f"Пользователь {message.reply_to_message.from_user.mention} был заглушен.")
+
                                 logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                             f'Текст сообщения {message.text}')
                                 await message.delete()  # Удаляем сообщение содержащее ссылку
 
                         elif entity.type == "text_link":
                             link = entity.url
-                            logger.info(f"Ссылка (text_link) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
+                            logger.info(
+                                f"Ссылка (text_link) в сообщении 🔗: {link}")  # Здесь вы можете обработать ссылку
                             username_id = await connect_session_to_telegram_account(link)
                             logger.info(f'ID группы {link}: {username_id}')
                             if username_id == user[0]:
@@ -135,7 +141,6 @@ async def edit_message(message: types.Message):
             for entity in message.entities:  # Проверка на наличие ссылок
                 logger.info(f'Тип ссылки: {entity.type}')
                 if entity.type in ["url", "text_link", "mention"]:
-                    # warning_url = await message.answer(f'Запрещена публикация сообщений с ссылками')
                     logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                 f'Текст сообщения {message.text}')
                     await message.delete()  # Удаляем сообщение содержащее ссылку
