@@ -1,4 +1,3 @@
-import asyncio
 import re
 
 from aiogram import F
@@ -81,7 +80,6 @@ async def any_message(message: types.Message):
             for entity in message.entities:  # Проверка на наличие ссылок
                 logger.info(f'Тип ссылки: {entity.type}')
                 if entity.type in ["url", "text_link", "mention"]:
-                    warning_url = await message.answer(f'Запрещена публикация сообщений с ссылками')
 
                     users = await read_database()
                     for user in users:
@@ -96,13 +94,6 @@ async def any_message(message: types.Message):
                                 logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                             f'Текст сообщения {message.text}')
                                 await message.delete()  # Удаляем сообщение содержащее ссылку
-                                logger.info(
-                                    f'Сообщения {message.text} от ({message.from_user.username} {message.from_user.id}), '
-                                    f'удалено')
-                                logger.info(f'Удаление системного сообщения от бота через 10 сек.')
-                                await asyncio.sleep(int(10))  # Спим 20 секунд
-                                await warning_url.delete()  # Удаляем предупреждение от бота
-                                logger.info(f'Системное сообщения от бота удалено')
 
                         elif entity.type == "text_link":
                             link = entity.url
@@ -113,13 +104,6 @@ async def any_message(message: types.Message):
                                 logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                             f'Текст сообщения {message.text}')
                                 await message.delete()  # Удаляем сообщение содержащее ссылку
-                                logger.info(
-                                    f'Сообщения {message.text} от ({message.from_user.username} {message.from_user.id}), '
-                                    f'удалено')
-                                logger.info(f'Удаление системного сообщения от бота через 10 сек.')
-                                await asyncio.sleep(int(10))  # Спим 20 секунд
-                                await warning_url.delete()  # Удаляем предупреждение от бота
-                                logger.info(f'Системное сообщения от бота удалено')
 
                         elif entity.type == "mention":
                             link = message.text[entity.offset:entity.offset + entity.length]
@@ -130,13 +114,6 @@ async def any_message(message: types.Message):
                                 logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                             f'Текст сообщения {message.text}')
                                 await message.delete()  # Удаляем сообщение содержащее ссылку
-                                logger.info(
-                                    f'Сообщения {message.text} от ({message.from_user.username} {message.from_user.id}), '
-                                    f'удалено')
-                                logger.info(f'Удаление системного сообщения от бота через 10 сек.')
-                                await asyncio.sleep(int(10))  # Спим 20 секунд
-                                await warning_url.delete()  # Удаляем предупреждение от бота
-                                logger.info(f'Системное сообщения от бота удалено')
 
         except Exception as e:
             logger.info(f'Возникла ошибка {e}, так как в сообщении {message.text} от {message.from_user.username} '
@@ -158,16 +135,10 @@ async def edit_message(message: types.Message):
             for entity in message.entities:  # Проверка на наличие ссылок
                 logger.info(f'Тип ссылки: {entity.type}')
                 if entity.type in ["url", "text_link", "mention"]:
-                    warning_url = await message.answer(f'Запрещена публикация сообщений с ссылками')
+                    # warning_url = await message.answer(f'Запрещена публикация сообщений с ссылками')
                     logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
                                 f'Текст сообщения {message.text}')
                     await message.delete()  # Удаляем сообщение содержащее ссылку
-                    logger.info(f'Сообщения {message.text} от ({message.from_user.username} {message.from_user.id}), '
-                                f'удалено')
-                    logger.info(f'Удаление системного сообщения от бота через 10 сек.')
-                    await asyncio.sleep(int(10))  # Спим 20 секунд
-                    await warning_url.delete()  # Удаляем предупреждение от бота
-                    logger.info(f'Системное сообщения от бота удалено')
         except Exception as e:
             logger.info(f'Возникла ошибка {e}, так как в сообщении {message.text} от {message.from_user.username} '
                         f'{message.from_user.id} нет ссылки')
