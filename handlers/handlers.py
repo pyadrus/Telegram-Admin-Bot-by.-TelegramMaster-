@@ -9,7 +9,7 @@ from aiogram.types import Message
 from loguru import logger  # https://github.com/Delgan/loguru
 
 from models.models import connect_session_to_telegram_account, read_database
-from system.dispatcher import bot, dp, allowed_user_ids
+from system.dispatcher import bot, dp
 
 phone_number_pattern = re.compile(r'(\+?\d{1,3}[-\s]?\d{3,4}[-\s]?\d{2,4}[-\s]?\d{2,4})')
 
@@ -71,59 +71,33 @@ async def any_message(message: types.Message):
     logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
     user_id = message.from_user.id  # Получаем ID пользователя
     logger.info(f'Текст сообщения: {message.text}')
-    if user_id in allowed_user_ids:  # Проверка на наличие пользователя в списке разрешенных
-        logger.info(f'Админ {user_id} написал сообщение {message.text}')
-    else:
-        try:
-            for entity in message.entities:  # Проверка на наличие ссылок
-                logger.info(f'Тип ссылки: {entity.type}')
-                if entity.type in ["url", "text_link", "mention"]:
 
-                    users = await read_database()
-                    for user in users:
-                        logger.info(f'ID из базы данных: {user[0]}')
+    if message.entities:  # Проверяем, есть ли сущности в сообщении
+        for entity in message.entities:  # Проверка на наличие ссылок
+            logger.info(f'Тип ссылки: {entity.type}')
+            if entity.type in ["url", "text_link", "mention"]:
+                link = message.text[
+                       entity.offset:entity.offset + entity.length] if entity.type != "text_link" else entity.url
+                logger.info(f"Ссылка ({entity.type}) в сообщении 🔗: {link}")
 
-                        if entity.type == "url":
-                            link = message.text[entity.offset:entity.offset + entity.length]
-                            logger.info(f"Ссылка (url) в сообщении 🔗: {link}")
-                            username_id = await connect_session_to_telegram_account(link)
-                            logger.info(f'ID группы {link}: {username_id}')
-                            if username_id == user[0]:
-                                user_id = message.from_user.id
-                                permissions = ChatPermissions(can_send_messages=False)
-                                await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
-                                                               permissions=permissions)
-                                await message.reply(
-                                    f"Пользователь {message.reply_to_message.from_user.mention} был заглушен.")
+                client, username_id = await connect_session_to_telegram_account(link)
+                logger.info(f'ID группы {link}: {username_id}')
 
-                                logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
-                                            f'Текст сообщения {message.text}')
-                                await message.delete()  # Удаляем сообщение содержащее ссылку
+                users = await read_database()
+                for user in users:
+                    logger.info(f'ID из базы данных: {user[0]}')
 
-                        elif entity.type == "text_link":
-                            link = entity.url
-                            logger.info(
-                                f"Ссылка (text_link) в сообщении 🔗: {link}")
-                            username_id = await connect_session_to_telegram_account(link)
-                            logger.info(f'ID группы {link}: {username_id}')
-                            if username_id == user[0]:
-                                logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
-                                            f'Текст сообщения {message.text}')
-                                await message.delete()  # Удаляем сообщение содержащее ссылку
+                    if username_id == user[0]:
+                        user_id = message.from_user.id
 
-                        elif entity.type == "mention":
-                            link = message.text[entity.offset:entity.offset + entity.length]
-                            logger.info(f"Ссылка (mention) в сообщении 🔗: {link}")
-                            username_id = await connect_session_to_telegram_account(link)
-                            logger.info(f'ID группы {link}: {username_id}')
-                            if username_id == user[0]:
-                                logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
-                                            f'Текст сообщения {message.text}')
-                                await message.delete()  # Удаляем сообщение содержащее ссылку
+                        permissions = ChatPermissions(can_send_messages=False)
+                        await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
+                                                       permissions=permissions)
+                        logger.info(
+                            f'Сообщение от:({message.from_user.username} {message.from_user.id}). Текст сообщения {message.text}')
 
-        except Exception as e:
-            logger.info(f'Возникла ошибка {e}, так как в сообщении {message.text} от {message.from_user.username} '
-                        f'{message.from_user.id} нет ссылки')
+                        await message.delete()  # Удаляем сообщение содержащее ссылку
+                        await client.disconnect()
 
 
 @dp.edited_message(F.text)
@@ -131,22 +105,36 @@ async def edit_message(message: types.Message):
     """
     Проверка изменяемых сообщений на наличие ссылок если есть ссылка, то удаляем сообщение и предупреждаем пользователя.
     """
-    logger.info(f'Измененное сообщение пользователем: {message.from_user.id}, текст измененного '
-                f'сообщения: {message.text}')
+    logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
     user_id = message.from_user.id  # Получаем ID пользователя
-    if user_id in allowed_user_ids:  # Проверка на наличие пользователя в списке разрешенных
-        logger.info(f'Админ {user_id} изменил сообщение {message.text}')
-    else:
-        try:
-            for entity in message.entities:  # Проверка на наличие ссылок
-                logger.info(f'Тип ссылки: {entity.type}')
-                if entity.type in ["url", "text_link", "mention"]:
-                    logger.info(f'Сообщение от:({message.from_user.username} {message.from_user.id}). '
-                                f'Текст сообщения {message.text}')
-                    await message.delete()  # Удаляем сообщение содержащее ссылку
-        except Exception as e:
-            logger.info(f'Возникла ошибка {e}, так как в сообщении {message.text} от {message.from_user.username} '
-                        f'{message.from_user.id} нет ссылки')
+    logger.info(f'Текст сообщения: {message.text}')
+
+    if message.entities:  # Проверяем, есть ли сущности в сообщении
+        for entity in message.entities:  # Проверка на наличие ссылок
+            logger.info(f'Тип ссылки: {entity.type}')
+            if entity.type in ["url", "text_link", "mention"]:
+                link = message.text[
+                       entity.offset:entity.offset + entity.length] if entity.type != "text_link" else entity.url
+                logger.info(f"Ссылка ({entity.type}) в сообщении 🔗: {link}")
+
+                client, username_id = await connect_session_to_telegram_account(link)
+                logger.info(f'ID группы {link}: {username_id}')
+
+                users = await read_database()
+                for user in users:
+                    logger.info(f'ID из базы данных: {user[0]}')
+
+                    if username_id == user[0]:
+                        user_id = message.from_user.id
+
+                        permissions = ChatPermissions(can_send_messages=False)
+                        await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
+                                                       permissions=permissions)
+                        logger.info(
+                            f'Сообщение от:({message.from_user.username} {message.from_user.id}). Текст сообщения {message.text}')
+
+                        await message.delete()  # Удаляем сообщение содержащее ссылку
+                        await client.disconnect()
 
 
 def register_greeting_handler():
