@@ -69,7 +69,6 @@ async def any_message(message: types.Message):
     Проверка сообщения на наличие ссылок если ссылка в сообщении есть, то удаляем сообщение и предупреждаем пользователя.
     """
     logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
-    user_id = message.from_user.id  # Получаем ID пользователя
     logger.info(f'Текст сообщения: {message.text}')
 
     if message.entities:  # Проверяем, есть ли сущности в сообщении
@@ -106,7 +105,6 @@ async def edit_message(message: types.Message):
     Проверка изменяемых сообщений на наличие ссылок если есть ссылка, то удаляем сообщение и предупреждаем пользователя.
     """
     logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
-    user_id = message.from_user.id  # Получаем ID пользователя
     logger.info(f'Текст сообщения: {message.text}')
 
     if message.entities:  # Проверяем, есть ли сущности в сообщении
