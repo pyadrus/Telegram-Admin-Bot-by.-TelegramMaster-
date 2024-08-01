@@ -3,7 +3,6 @@ import sqlite3
 from aiogram import types
 from aiogram.filters import Command
 from loguru import logger
-
 from system.dispatcher import dp  # Подключение к боту и диспетчеру пользователя
 
 

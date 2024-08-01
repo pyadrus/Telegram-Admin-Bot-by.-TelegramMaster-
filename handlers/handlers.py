@@ -2,6 +2,7 @@ import re
 
 from aiogram import F
 from aiogram import types
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import ChatMemberUpdatedFilter, IS_NOT_MEMBER, IS_MEMBER
 from aiogram.filters import CommandStart
 from aiogram.types import ChatMemberUpdated, ChatPermissions
@@ -9,7 +10,7 @@ from aiogram.types import Message
 from loguru import logger  # https://github.com/Delgan/loguru
 
 from models.models import connect_session_to_telegram_account, read_database
-from system.dispatcher import bot, dp
+from system.dispatcher import bot, dp, allowed_user_ids
 
 phone_number_pattern = re.compile(r'(\+?\d{1,3}[-\s]?\d{3,4}[-\s]?\d{2,4}[-\s]?\d{2,4})')
 
@@ -80,23 +81,30 @@ async def any_message(message: types.Message):
                 logger.info(f"Ссылка ({entity.type}) в сообщении 🔗: {link}")
 
                 client, username_id = await connect_session_to_telegram_account(link)
-                logger.info(f'ID группы {link}: {username_id}')
+                if message.from_user.id not in allowed_user_ids:
+                    logger.info(f'ID группы {link}: {username_id}')
 
-                users = await read_database()
-                for user in users:
-                    logger.info(f'ID из базы данных: {user[0]}')
+                    users = await read_database()
+                    for user in users:
+                        logger.info(f'ID из базы данных: {user[0]}')
 
-                    if username_id == user[0]:
-                        user_id = message.from_user.id
+                        if username_id == user[0]:
+                            user_id = message.from_user.id
 
-                        permissions = ChatPermissions(can_send_messages=False)
-                        await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
-                                                       permissions=permissions)
-                        logger.info(
-                            f'Сообщение от:({message.from_user.username} {message.from_user.id}). Текст сообщения {message.text}')
+                            permissions = ChatPermissions(can_send_messages=False)
+                            try:
+                                await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
+                                                           permissions=permissions)
+                                logger.info(
+                                    f'Сообщение от:({message.from_user.username} {message.from_user.id}). Текст сообщения {message.text}')
 
-                        await message.delete()  # Удаляем сообщение содержащее ссылку
-                        await client.disconnect()
+                                await message.delete()  # Удаляем сообщение содержащее ссылку
+                                await client.disconnect()
+                            except TelegramBadRequest:
+                                await client.disconnect()
+
+                logger.info(f'Сообщение от админа:({message.from_user.username} {message.from_user.id}). Текст сообщения {message.text}')
+                await client.disconnect()
 
 
 @dp.edited_message(F.text)
