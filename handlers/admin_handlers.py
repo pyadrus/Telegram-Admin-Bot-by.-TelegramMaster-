@@ -7,12 +7,10 @@ from system.dispatcher import dp  # Подключение к боту и дис
 
 
 def checking_for_presence_in_the_user_database(user_id):
-    # Инициализация базы данных SQLite
-    conn = sqlite3.connect('setting/database.db')
+    conn = sqlite3.connect('setting/database.db')  # Инициализация базы данных SQLite
     cursor = conn.cursor()
     cursor.execute('CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY)')
-    # Проверка наличия ID в базе данных
-    cursor.execute('SELECT id FROM groups WHERE id = ?', (user_id,))
+    cursor.execute('SELECT id FROM groups WHERE id = ?', (user_id,))  # Проверка наличия ID в базе данных
     result = cursor.fetchone()
     return result
 

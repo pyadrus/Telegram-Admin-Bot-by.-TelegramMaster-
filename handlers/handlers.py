@@ -71,7 +71,6 @@ async def any_message(message: types.Message):
     """
     logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
     logger.info(f'Текст сообщения: {message.text}')
-
     if message.entities:  # Проверяем, есть ли сущности в сообщении
         for entity in message.entities:  # Проверка на наличие ссылок
             logger.info(f'Тип ссылки: {entity.type}')
@@ -79,18 +78,14 @@ async def any_message(message: types.Message):
                 link = message.text[
                        entity.offset:entity.offset + entity.length] if entity.type != "text_link" else entity.url
                 logger.info(f"Ссылка ({entity.type}) в сообщении 🔗: {link}")
-
                 client, username_id = await connect_session_to_telegram_account(link)
                 if message.from_user.id not in allowed_user_ids:
                     logger.info(f'ID группы {link}: {username_id}')
-
                     users = await read_database()
                     for user in users:
                         logger.info(f'ID из базы данных: {user[0]}')
-
                         if username_id == user[0]:
                             user_id = message.from_user.id
-
                             permissions = ChatPermissions(can_send_messages=False)
                             try:
                                 await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
@@ -114,7 +109,6 @@ async def edit_message(message: types.Message):
     """
     logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
     logger.info(f'Текст сообщения: {message.text}')
-
     if message.entities:  # Проверяем, есть ли сущности в сообщении
         for entity in message.entities:  # Проверка на наличие ссылок
             logger.info(f'Тип ссылки: {entity.type}')
@@ -125,20 +119,16 @@ async def edit_message(message: types.Message):
 
                 client, username_id = await connect_session_to_telegram_account(link)
                 logger.info(f'ID группы {link}: {username_id}')
-
                 users = await read_database()
                 for user in users:
                     logger.info(f'ID из базы данных: {user[0]}')
-
                     if username_id == user[0]:
                         user_id = message.from_user.id
-
                         permissions = ChatPermissions(can_send_messages=False)
                         await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
                                                        permissions=permissions)
                         logger.info(
                             f'Сообщение от:({message.from_user.username} {message.from_user.id}). Текст сообщения {message.text}')
-
                         await message.delete()  # Удаляем сообщение содержащее ссылку
                         await client.disconnect()
 
