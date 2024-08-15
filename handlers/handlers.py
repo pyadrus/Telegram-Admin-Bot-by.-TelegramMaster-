@@ -1,5 +1,6 @@
 import re
 import sqlite3
+
 from aiogram import F
 from aiogram import types
 from aiogram.exceptions import TelegramBadRequest
@@ -7,7 +8,7 @@ from aiogram.filters import ChatMemberUpdatedFilter, IS_NOT_MEMBER, IS_MEMBER
 from aiogram.filters import CommandStart
 from aiogram.types import ChatMemberUpdated, ChatPermissions
 from aiogram.types import Message
-from loguru import logger  # https://github.com/Delgan/loguru
+from loguru import logger
 
 from models.models import connect_session_to_telegram_account, read_database
 from system.dispatcher import bot, dp, allowed_user_ids
@@ -129,6 +130,7 @@ async def any_message(message: types.Message):
                         continue  # Переход к следующей ссылке, если она найдена в базе данных
 
                     logger.info(f"Ссылка '{link}' не найдена в базе данных. Продолжаем проверку по ID.")
+                    # try:
                     client, username_id = await connect_session_to_telegram_account(link)
 
                     if message.from_user.id not in allowed_user_ids:

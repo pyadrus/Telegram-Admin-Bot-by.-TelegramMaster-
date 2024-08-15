@@ -12,12 +12,13 @@ async def remove_digits_from_url(url):
 
 
 async def connect_session_to_telegram_account(username_messages):
-    try:
-        api_id = 12345
-        api_hash = '0123456789abcdef0123456789abcdef'
-        session_name = 'session_name'
+    # try:
+    api_id = 12345
+    api_hash = '0123456789abcdef0123456789abcdef'
+    session_name = 'session_name'
 
-        client = TelegramClient(f'setting/account/{session_name}', api_id, api_hash)
+    client = TelegramClient(f'setting/account/{session_name}', api_id, api_hash)
+    try:
         await client.connect()
         logger.info(f'Подключено к аккаунту Telegram с именем сеанса {session_name}')
         try:

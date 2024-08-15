@@ -1,7 +1,8 @@
 import asyncio
 import logging
 import sys
-
+import os
+import time
 from loguru import logger
 
 from handlers.admin_handlers import greeting_handler
@@ -9,6 +10,13 @@ from handlers.handlers import register_greeting_handler
 from system.dispatcher import dp, bot
 
 logger.add("logs/log.log", retention="1 days", enqueue=True)  # Логирование бота
+
+file_path = 'setting/account/session_name.session-journal'
+try:
+    os.remove(file_path)
+    logger.info(f"Файл {file_path} успешно удален.")
+except FileNotFoundError:
+    logger.info(f"Файл {file_path} не найден.")
 
 
 async def main() -> None:
