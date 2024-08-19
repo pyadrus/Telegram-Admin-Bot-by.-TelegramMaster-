@@ -3,7 +3,6 @@ import sqlite3
 
 from aiogram import F
 from aiogram import types
-from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import ChatMemberUpdatedFilter, IS_NOT_MEMBER, IS_MEMBER
 from aiogram.filters import CommandStart
 from aiogram.types import ChatMemberUpdated, ChatPermissions
@@ -107,85 +106,33 @@ async def any_message(message: types.Message):
     """
     Проверка сообщения на наличие ссылок: если ссылка в сообщении есть, то удаляем сообщение и предупреждаем пользователя.
     """
-    logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
-    logger.info(f'Текст сообщения: {message.text}')
-    try:
-        if message.entities:  # Проверяем, есть ли сущности в сообщении
-            for entity in message.entities:  # Проверка на наличие ссылок
-                logger.info(f'Тип ссылки: {entity.type}')
-                if entity.type in ["url", "text_link", "mention"]:
-                    link = message.text[
-                           entity.offset:entity.offset + entity.length] if entity.type != "text_link" else entity.url
-                    logger.info(f"Ссылка ({entity.type}) в сообщении 🔗: {link}")
+    logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}. Текст сообщения: {message.text}')
+    # try:
+    if message.entities:  # Проверяем, есть ли сущности в сообщении
+        for entity in message.entities:  # Проверка на наличие ссылок
+            if entity.type in ["url", "text_link", "mention"]:
+                link = message.text[entity.offset:entity.offset + entity.length] if entity.type != "text_link" else entity.url
+                logger.info(f"Тип ссылки: {entity.type}. Ссылка ({entity.type}) в сообщении 🔗: {link}")
+                # Проверка на наличие ссылки в базе данных
+                conn = sqlite3.connect('setting/database.db')
+                cursor = conn.cursor()
+                cursor.execute('SELECT COUNT(1) FROM links WHERE link = ?', (link,))
+                link_exists = cursor.fetchone()[0] > 0
+                conn.close()
+                if link_exists:
+                    logger.info(f"Ссылка '{link}' найдена в базе данных. Проверка по ID не требуется.")
+                    continue  # Переход к следующей ссылке, если она найдена в базе данных
+                logger.info(f"Ссылка '{link}' не найдена в базе данных. Продолжаем проверку по ID.")
 
-                    # Проверка на наличие ссылки в базе данных
-                    conn = sqlite3.connect('setting/database.db')
-                    cursor = conn.cursor()
-                    cursor.execute('SELECT COUNT(1) FROM links WHERE link = ?', (link,))
-                    link_exists = cursor.fetchone()[0] > 0
-                    conn.close()
-
-                    if link_exists:
-                        logger.info(f"Ссылка '{link}' найдена в базе данных. Проверка по ID не требуется.")
-                        continue  # Переход к следующей ссылке, если она найдена в базе данных
-
-                    logger.info(f"Ссылка '{link}' не найдена в базе данных. Продолжаем проверку по ID.")
-                    # try:
-                    client, username_id = await connect_session_to_telegram_account(link)
-
-                    if message.from_user.id not in allowed_user_ids:
-                        logger.info(f'ID группы {link}: {username_id}')
-                        users = await read_database()
-                        user_found = False
-                        for user in users:
-                            logger.info(f'ID из базы данных: {user[0]}')
-                            if username_id == user[0]:
-                                user_found = True
-                                user_id = message.from_user.id
-                                permissions = ChatPermissions(can_send_messages=False)
-                                try:
-                                    await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
-                                                                   permissions=permissions)
-                                    logger.info(f'Сообщение от:({message.from_user.username} '
-                                                f'{message.from_user.id}). Текст сообщения {message.text}')
-
-                                    await message.delete()  # Удаляем сообщение содержащее ссылку
-                                    await client.disconnect()
-                                except TelegramBadRequest:
-                                    await client.disconnect()
-                        if not user_found:
-                            logger.info(
-                                f'ID группы {link}: {username_id} не найдено в базе данных. Записываем ссылку в базу данных.')
-                            await write_to_database(link)  # Запись ссылки в базу данных
-                    logger.info(f'Сообщение от админа:({message.from_user.username} '
-                                f'{message.from_user.id}). Текст сообщения {message.text}')
-                    await client.disconnect()
-    except Exception as error:
-        logger.info(f'Ошибка: {error}')  # Обработка ошибки
-
-
-@dp.edited_message(F.text)
-async def edit_message(message: types.Message):
-    """
-    Проверка изменяемых сообщений на наличие ссылок если есть ссылка, то удаляем сообщение и предупреждаем пользователя.
-    """
-    logger.info(f'Проверяем сообщение {message.text} от {message.from_user.username} {message.from_user.id}')
-    logger.info(f'Текст сообщения: {message.text}')
-    try:
-        if message.entities:  # Проверяем, есть ли сущности в сообщении
-            for entity in message.entities:  # Проверка на наличие ссылок
-                logger.info(f'Тип ссылки: {entity.type}')
-                if entity.type in ["url", "text_link", "mention"]:
-                    link = message.text[
-                           entity.offset:entity.offset + entity.length] if entity.type != "text_link" else entity.url
-                    logger.info(f"Ссылка ({entity.type}) в сообщении 🔗: {link}")
-
-                    client, username_id = await connect_session_to_telegram_account(link)
+                username_id = await connect_session_to_telegram_account(link)
+                if message.from_user.id not in allowed_user_ids:
                     logger.info(f'ID группы {link}: {username_id}')
                     users = await read_database()
+                    user_found = False
                     for user in users:
                         logger.info(f'ID из базы данных: {user[0]}')
                         if username_id == user[0]:
+                            user_found = True
                             user_id = message.from_user.id
                             permissions = ChatPermissions(can_send_messages=False)
                             await bot.restrict_chat_member(chat_id=message.chat.id, user_id=user_id,
@@ -193,10 +140,11 @@ async def edit_message(message: types.Message):
                             logger.info(f'Сообщение от:({message.from_user.username} '
                                         f'{message.from_user.id}). Текст сообщения {message.text}')
                             await message.delete()  # Удаляем сообщение содержащее ссылку
-                            await client.disconnect()
-    except Exception as error:
-        logger.info(f'Ошибка: {error}')  # Обработка ошибки
-
+                    if not user_found:
+                        logger.info(f'ID группы {link}: {username_id} не найдено в базе данных. Записываем ссылку в базу данных.')
+                        await write_to_database(link)  # Запись ссылки в базу данных
+                logger.info(f'Сообщение от админа:({message.from_user.username} '
+                            f'{message.from_user.id}). Текст сообщения {message.text}')
 
 def register_greeting_handler():
     """Регистрируем handlers для бота"""
