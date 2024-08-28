@@ -2,7 +2,10 @@ import sqlite3
 
 from aiogram import types
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 from loguru import logger
+
 from system.dispatcher import dp  # Подключение к боту и диспетчеру пользователя
 
 
@@ -19,7 +22,7 @@ def checking_for_presence_in_the_user_database(user_id):
 async def process_id_command(message: types.Message):
     """Обработчик команды /id"""
     user_id = message.from_user.id  # Получаем ID пользователя
-    if message.from_user.id not in [53518551, 7181118530, 6329028511]:
+    if message.from_user.id not in [535185511, 7181118530, 6329028511]:
         await message.reply('У вас нет доступа к этой команде.')
         return
     logger.info(f'Админ {user_id} написал сообщение {message.text}')
@@ -40,6 +43,45 @@ async def process_id_command(message: types.Message):
     except Exception as error:
         logger.exception(error)
 
+# Создаем состояние для ввода URL
+class URLForm(StatesGroup):
+    url = State()
+
+@dp.message(Command('url_add'))
+async def process_url_command(message: types.Message, state: FSMContext):
+    """Обработчик команды /url_add"""
+    user_id = message.from_user.id  # Получаем ID пользователя
+    if user_id not in [535185511, 7181118530, 6329028511]:
+        await message.reply('У вас нет доступа к этой команде.')
+        return
+    logger.info(f'Админ {user_id} написал сообщение {message.text}')
+    await message.reply("Пожалуйста, введите URL для добавления:")
+    await state.set_state(URLForm.url)# Устанавливаем состояние ожидания URL
+
+@dp.message(URLForm.url)
+async def process_url_input(message: types.Message, state: FSMContext):
+    """Обработчик ввода URL"""
+    user_id = message.from_user.id
+    url = message.text.strip()
+
+    try:
+        # Проверяем наличие URL в базе данных
+        result = checking_for_presence_in_the_user_database(url)
+        if result is None:
+            conn = sqlite3.connect('setting/database.db')  # Инициализация базы данных SQLite
+            cursor = conn.cursor()
+            cursor.execute('CREATE TABLE IF NOT EXISTS url (id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT)')
+            cursor.execute('INSERT INTO url (url) VALUES (?)', (url,))
+            conn.commit()
+            await message.reply(f"URL '{url}' успешно записан в базу данных.")
+        else:
+            await message.reply(f"URL '{url}' уже существует в базе данных.")
+    except Exception as error:
+        logger.exception(error)
+        await message.reply("Произошла ошибка при добавлении URL.")
+    finally:
+        await state.clear()  # Завершаем состояние
 
 def greeting_handler():
     dp.message.register(process_id_command)
+    dp.message.register(process_url_command)
