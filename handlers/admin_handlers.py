@@ -46,6 +46,21 @@ async def process_id_command(message: types.Message):
     except Exception as error:
         logger.exception(error)
 
+@dp.message(Command('del'))
+async def process_id_command(message: types.Message):
+    """Обработчик команды /id"""
+    user_id = message.from_user.id  # Получаем ID пользователя
+    if message.from_user.id not in [535185511, 7181118530, 6329028511]:
+        await message.reply('У вас нет доступа к этой команде.')
+        return
+    logger.info(f'Админ {user_id} написал сообщение {message.text}')
+    conn = sqlite3.connect('setting/database.db')  # Инициализация базы данных SQLite
+    cursor = conn.cursor()
+    cursor.execute(f"DELETE FROM links")
+    conn.commit()
+    conn.close()  # cursor_members.close() – закрытие соединения с БД.
+    await message.reply(f"ID {user_id} уже существует в базе данных.")
+
 # Создаем состояние для ввода URL
 class URLForm(StatesGroup):
     url = State()
