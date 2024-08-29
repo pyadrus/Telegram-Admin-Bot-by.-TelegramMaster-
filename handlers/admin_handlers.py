@@ -2,10 +2,13 @@ import sqlite3
 
 from aiogram import types
 from aiogram.filters import Command
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import Message
 from loguru import logger
 
+from system.dispatcher import bot
 from system.dispatcher import dp  # Подключение к боту и диспетчеру пользователя
 
 
@@ -82,6 +85,19 @@ async def process_url_input(message: types.Message, state: FSMContext):
     finally:
         await state.clear()  # Завершаем состояние
 
+@dp.message(CommandStart())
+async def command_start_handler(message: Message) -> None:
+    # Если пользователя нет в базе данных, предлагаем пройти регистрацию
+    sign_up_text = (
+        "⚠️ Бот для администрирования групп ⚠️\n\n"
+    )
+    # Отправляем сообщение с предложением зарегистрироваться и клавиатурой
+    await bot.send_message(message.from_user.id, sign_up_text,
+                           disable_web_page_preview=True)
+
+
+
 def greeting_handler():
     dp.message.register(process_id_command)
     dp.message.register(process_url_command)
+    dp.message.register(command_start_handler)
